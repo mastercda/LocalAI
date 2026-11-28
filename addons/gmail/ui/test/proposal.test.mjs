@@ -32,6 +32,23 @@ test('gmail proposal: an ID that is not one is dropped, and a wrong type is empt
   assert.equal(proposalView('send-draft', {}, undefined).hasBody, false)
 })
 
+test('gmail proposal: Calendar and Tasks approvals show stored changes and the target', () => {
+  const event = proposalView('calendar-event-update',
+    { title: 'Planning', start: '2026-04-04T10:00:00Z', description: 'Bring the notes' },
+    { target: { title: 'Old plan', start: { dateTime: '2026-04-04T09:00:00Z' } } })
+  assert.equal(event.title, 'Planning')
+  assert.equal(event.start, '2026-04-04T10:00:00Z')
+  assert.equal(event.description, 'Bring the notes')
+  assert.equal(event.targetTitle, 'Old plan')
+  assert.equal(event.targetStart, '2026-04-04T09:00:00Z')
+
+  const task = proposalView('task-complete', { taskListId: '@default', id: 'task-1' },
+    { target: { title: 'Send report', status: 'needsAction' } })
+  assert.equal(task.taskListId, '@default')
+  assert.equal(task.targetTitle, 'Send report')
+  assert.equal(task.targetStatus, 'needsAction')
+})
+
 test('gmail proposal: every write tool of the manifest has a title and a card', () => {
   const writes = manifest.capabilities.toolDefinitions.filter((d) => d.kind === 'write').map((d) => d.name)
   assert.ok(writes.length > 0)

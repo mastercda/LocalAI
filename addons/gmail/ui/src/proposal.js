@@ -17,6 +17,7 @@ export function proposalView(tool, args, sample) {
   const s = sample && typeof sample === 'object' ? sample : {}
   const storedBody = typeof a.body === 'string'
   const body = storedBody ? a.body : str(s.body)
+  const target = s.target && typeof s.target === 'object' ? s.target : {}
   return {
     tool: str(tool),
     to: joined(a.to) || joined(s.to),
@@ -34,5 +35,18 @@ export function proposalView(tool, args, sample) {
     replyToSubject: str(s.replyToSubject),
     draftId: id(a.draftId) || id(s.draftId),
     attachments: list(s.attachments),
+    title: str(a.title) || str(s.title),
+    start: str(a.start) || str(s.start),
+    end: str(a.end) || str(s.end),
+    description: str(a.description) || str(s.description),
+    location: str(a.location) || str(s.location),
+    notes: str(a.notes) || str(s.notes),
+    due: str(a.due) || str(s.due),
+    status: str(a.status) || str(s.status),
+    taskListId: str(a.taskListId) || str(s.taskListId),
+    targetTitle: str(target.title),
+    targetStart: str(target.start?.dateTime || target.start?.date),
+    targetEnd: str(target.end?.dateTime || target.end?.date),
+    targetStatus: str(target.status),
   }
 }

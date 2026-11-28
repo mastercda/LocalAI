@@ -23,7 +23,7 @@ var _ = Describe("the manifest", func() {
 		Expect(err).NotTo(HaveOccurred())
 		m, err := contract.ParseManifest(b)
 		Expect(err).NotTo(HaveOccurred())
-		h := contract.HostCompatibility{Host: 1, API: contract.HostAPIVersion, Protocol: 1, SDK: 2, DataFormat: 1, OS: "linux", Arch: "amd64"}
+		h := contract.HostCompatibility{Host: 1, API: contract.HostAPIVersion, Protocol: 1, SDK: 2, DataFormat: 1, FeatureLevel: 10, OS: "linux", Arch: "amd64"}
 		Expect(contract.ValidateManifest(m, h)).To(Succeed())
 		Expect(m.Capabilities.Tools).To(ConsistOf(tools.Declared()))
 		Expect(len(m.Capabilities.ToolDefinitions)).To(BeNumerically("<=", contract.MaxToolDefinitions))
@@ -39,8 +39,8 @@ var _ = Describe("the manifest", func() {
 		slot := m.Capabilities.Credentials[0]
 		Expect(slot.Kind).To(Equal(contract.CredentialKindOAuth2))
 		Expect(slot.OAuth.Validate()).To(Succeed())
-		Expect(slot.OAuth.Scopes.Required).To(ConsistOf(tools.ScopeRead))
-		Expect(slot.OAuth.Scopes.Optional).To(ConsistOf(tools.ScopeWrite))
+		Expect(slot.OAuth.Scopes.Required).To(ConsistOf(tools.ScopeRead, tools.ScopeCalendarRead, tools.ScopeTasksRead))
+		Expect(slot.OAuth.Scopes.Optional).To(ConsistOf(tools.ScopeWrite, tools.ScopeCalendarWrite, tools.ScopeTasksWrite))
 		Expect(slot.ResourceArgument).To(Equal("label"))
 		Expect(string(b)).NotTo(ContainSubstring("gmail.modify"))
 		Expect(string(b)).NotTo(ContainSubstring("mail.google.com/\""))

@@ -45,7 +45,10 @@ const (
 )
 
 // WriteTools lists the write tools.
-func WriteTools() []string { return []string{ToolCreateDraft, ToolSendDraft} }
+func WriteTools() []string {
+	return []string{ToolCreateDraft, ToolSendDraft, ToolCalendarCreate, ToolCalendarUpdate, ToolCalendarDelete,
+		ToolTaskCreate, ToolTaskUpdate, ToolTaskComplete, ToolTaskDelete}
+}
 
 func isWrite(tool string) bool { return slices.Contains(WriteTools(), tool) }
 
@@ -302,6 +305,10 @@ func (r *Runtime) prepare(ctx context.Context, env contract.Envelope) (write, *c
 
 // Preview checks a write and describes it. It changes nothing.
 func (r *Runtime) Preview(ctx context.Context, env contract.Envelope) (contract.Preview, error) {
+	tool, raw, err := argutil.SplitArgs(env.Request.Arguments)
+	if err == nil && isProductWrite(tool) {
+		return r.previewProductivity(ctx, env, tool, raw)
+	}
 	w, c, err := r.prepare(ctx, env)
 	if err != nil {
 		return contract.Preview{}, err
@@ -338,6 +345,10 @@ var errMaybeSent = errors.New("an earlier attempt may have gone through. Check D
 // gone after an unknown attempt: sending a draft removes it, so the draft is
 // the evidence that the attempt went through.
 func (r *Runtime) Apply(ctx context.Context, env contract.Envelope, rev contract.Revision) (contract.Receipt, error) {
+	tool, raw, err := argutil.SplitArgs(env.Request.Arguments)
+	if err == nil && isProductWrite(tool) {
+		return r.applyProductivity(ctx, env, rev, tool, raw)
+	}
 	return r.Runtime.Apply(env.Request.OperationID, rev, func() (writeflow.Session, error) {
 		w, c, err := r.prepare(ctx, env)
 		if err != nil {
@@ -381,6 +392,19 @@ func (s *session) Send() (map[string]any, error) { return s.c.send(s.w, s.t) }
 // translateWrite is translate for a definite failure of a write: a limit
 // becomes a refusal that says when to try again, since nothing was changed.
 func (r *Runtime) translateWrite(err error, sent bool) error {
+	var product *productError
+	if errors.As(err, &product) {
+		if errors.Is(product.err, gmailapi.ErrScope) {
+			return bad("Google refused Calendar or Tasks write access")
+		}
+		if errors.Is(product.err, gmailapi.ErrNotFound) {
+			return bad("the Calendar or Tasks item no longer exists")
+		}
+		if errors.Is(product.err, gmailapi.ErrForbidden) || errors.Is(product.err, gmailapi.ErrInvalid) {
+			return bad("Google Calendar or Tasks refused the request")
+		}
+		return r.Translate(err)
+	}
 	var limited *contract.ErrRateLimited
 	var server *gmailapi.ServerError
 	if errors.As(err, &limited) {
